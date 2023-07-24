@@ -1,104 +1,33 @@
 import React, { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
-import * as Yup from "yup";
 
 import { useForm } from "react-hook-form";
 
-const formSemasi = Yup.object().shape({
-  title: Yup.string()
-    .required("Task başlığı yazmalısınız")
-    .min(3, "Task başlığı en az 3 karakter olmalı"),
-  description: Yup.string()
-    .required("Task açıklaması yazmalısınız")
-    .min(10, "Task açıklaması en az 10 karakter olmalı"),
-  people: Yup.array()
-    .max(3, "En fazla 3 kişi seçebilirsiniz")
-    .min(1, "Lütfen en az bir kişi seçin"),
-});
-
 const TaskForm = ({ kisiler, submitFn }) => {
-  const { register, handleSubmit } = useForm();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm();
 
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    people: [],
-  });
-
-  // yup error stateleri
-  const [formErrors, setFormErrors] = useState({
-    title: "",
-    description: "",
-    people: "",
-  });
-
-  const [buttonDisabled, setButtonDisabled] = useState(true);
+  //  const [buttonDisabled, setButtonDisabled] = useState(true);
 
   // form datası her güncellendiğinde valid mi diye kontrol et
-  useEffect(() => {
+  /* useEffect(() => {
     formSemasi.isValid(formData).then((valid) => setButtonDisabled(!valid));
   }, [formData]);
-
-  // yup form alani her değiştiğinde çalışan kontrol fonksiyonu
-  function formAlaniniKontrolEt(name, value) {
-    Yup.reach(formSemasi, name)
-      .validate(value)
-      .then(() => {
-        setFormErrors({
-          ...formErrors,
-          [name]: "",
-        });
-      })
-      .catch((err) => {
-        setFormErrors({
-          ...formErrors,
-          [name]: err.errors[0],
-        });
-      });
-  }
-
-  // checkboxların değişimini state içerisine eklemek için özel fonksiyon
-  function handleCheckboxChange(e) {
-    const { value } = e.target;
-
-    let yeniPeople = [...formData.people];
-    const index = formData.people.indexOf(value);
-    if (index > -1) {
-      yeniPeople.splice(index, 1);
-    } else {
-      yeniPeople.push(value);
-    }
-
-    formAlaniniKontrolEt("people", yeniPeople);
-    setFormData({
-      ...formData,
-      people: yeniPeople,
-    });
-  }
-
-  // diğer form alanları değiştikçe çalışan ve yeni değeri state'e ekleyen fonksiyon
-  function handleOthersChange(e) {
-    const { name, value } = e.target;
-    formAlaniniKontrolEt(name, value);
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  }
+  */
 
   // task ekleme
-  function myNewHandleSubmit(e) {
-    e.preventDefault();
+  function myNewHandleSubmit(data) {
+    console.log(data);
     submitFn({
-      ...formData,
+      ...data,
       id: nanoid(5),
       status: "yapılacak",
     });
-    setFormData({
-      title: "",
-      description: "",
-      people: [],
-    });
+    reset();
   }
 
   return (
@@ -110,12 +39,16 @@ const TaskForm = ({ kisiler, submitFn }) => {
         <input
           className="input-text"
           id="title"
-          {...register("title")}
+          {...register("title", {
+            required: "Task başlığı yazmalısınız",
+            minLength: {
+              value: 3,
+              message: "Task başlığı en az 3 karakter olmalı",
+            },
+          })}
           type="text"
-          onChange={handleOthersChange}
-          value={formData.title}
         />
-        <p className="input-error">{formErrors.title}</p>
+        {errors.title && <p className="input-error">{errors.title?.message}</p>}
       </div>
 
       <div className="form-line">
@@ -126,11 +59,17 @@ const TaskForm = ({ kisiler, submitFn }) => {
           className="input-textarea"
           rows="3"
           id="description"
-          {...register("description")}
-          onChange={handleOthersChange}
-          value={formData.description}
+          {...register("description", {
+            required: "Task açıklaması yazmalısınız",
+            minLength: {
+              value: 10,
+              message: "Task açıklaması en az 10 karakter olmalı",
+            },
+          })}
         ></textarea>
-        <p className="input-error">{formErrors.description}</p>
+        {errors.description && (
+          <p className="input-error">{errors.description?.message}</p>
+        )}
       </div>
 
       <div className="form-line">
@@ -140,23 +79,27 @@ const TaskForm = ({ kisiler, submitFn }) => {
             <label className="input-checkbox" key={p}>
               <input
                 type="checkbox"
-                {...register("people")}
+                {...register("people", {
+                  required: "Lütfen en az bir kişi seçin",
+                  validate: (peoList) =>
+                    peoList.length <= 3 || "En fazla 3 kişi seçebilirsiniz",
+                })}
                 value={p}
-                onChange={handleCheckboxChange}
-                checked={formData.people.includes(p)}
               />
               {p}
             </label>
           ))}
         </div>
-        <p className="input-error">{formErrors.people}</p>
+        {errors.people && (
+          <p className="input-error">{errors.people?.message}</p>
+        )}
       </div>
 
       <div className="form-line">
         <button
           className="submit-button"
           type="submit"
-          disabled={buttonDisabled}
+          // disabled={buttonDisabled}
         >
           Kaydet
         </button>
@@ -164,7 +107,6 @@ const TaskForm = ({ kisiler, submitFn }) => {
     </form>
   );
 };
-
 export default TaskForm;
 
 /*
@@ -177,6 +119,23 @@ onChange leri silersem bütün YUP akışları dışarıda kalıyor.
 onSubmit fonk bi parametre atıyor, istediğini diyebilirsin . o parametre benim bütün datalarımın object tree'si oluyor.
 yani benim.
 myNewHandleSubmit teki (e) artık bir event değil, aslında bir data.
-react-hook kullanınca e.preventDefault a gerek kalmıyor, kullanmıyorum.
+react-hook kullanınca e.preventDefault a gerek kalmıyor,
+onchange den sonra   value={formData.title}    ve    value={formData.description} da sildim. 360 derece bağı kaldırdım. çünkü başlık ve açıklama kısmına yazamıyordum.
+checked={formData.people.includes(p)} ve  bunu da sildim. button disabled ı dda şimdilik inaktif ettim.
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    people: [],
+  }); buna da ihtiyacım kalmadı artık.
+function handleCheckboxChange(e)     ve 
+function handleOthersChange(e) alanlarına da ihtiyacım kalmadı. sildim.
+formAlaniniKontrolEt(name, value)  sildim.
+form alanını kontrol eden useEffect i sildim, form datayı sildim işim kalmadı.
+
+hook bizim için changeHandler ları ve StateHandler ları yazıyor.
+hook ta validastion u register ın içine 2. paametre olarak bir obje şeklinde yazıyorum. şağıda da {errors.description && (
+<p className="input-error">{errors.description?.message}</p>)} böyle görüntülüyorum.
+
+en son required ın içine validate ekleyerek yup error statelerini kaldırdım.
 
 */
