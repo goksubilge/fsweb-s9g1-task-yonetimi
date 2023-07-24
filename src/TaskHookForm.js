@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { nanoid } from "nanoid";
 
 import { useForm } from "react-hook-form";
@@ -8,16 +8,8 @@ const TaskForm = ({ kisiler, submitFn }) => {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
-  } = useForm();
-
-  //  const [buttonDisabled, setButtonDisabled] = useState(true);
-
-  // form datası her güncellendiğinde valid mi diye kontrol et
-  /* useEffect(() => {
-    formSemasi.isValid(formData).then((valid) => setButtonDisabled(!valid));
-  }, [formData]);
-  */
+    formState: { errors, isValid },
+  } = useForm({ mode: "onChange" });
 
   // task ekleme
   function myNewHandleSubmit(data) {
@@ -96,11 +88,7 @@ const TaskForm = ({ kisiler, submitFn }) => {
       </div>
 
       <div className="form-line">
-        <button
-          className="submit-button"
-          type="submit"
-          // disabled={buttonDisabled}
-        >
+        <button className="submit-button" type="submit" disabled={!isValid}>
           Kaydet
         </button>
       </div>
